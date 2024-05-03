@@ -4,10 +4,13 @@ import android.content.ContentResolver
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.pdf.PdfRenderer
 import android.net.Uri
+import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
 import android.provider.OpenableColumns
 import android.util.Base64
+import android.util.Log
 import androidx.core.net.toFile
 import com.vasilyev.kuickhackjvm.R
 import com.vasilyev.kuickhackjvm.model.Document
@@ -37,7 +40,7 @@ fun base64ToBitmap(string: String): Bitmap{
 
 fun uriToFile(context: Context, uri: Uri, documentName: String): File {
     val inputStream = context.contentResolver.openInputStream(uri)
-    val file = File(context.cacheDir, documentName)
+    val file = File(context.cacheDir, "$documentName.pdf")
 
     inputStream?.use { input ->
         FileOutputStream(file).use { output ->
@@ -45,6 +48,25 @@ fun uriToFile(context: Context, uri: Uri, documentName: String): File {
         }
     }
 
+    Log.d("ASDKASDJKAJD", file.extension)
+
     return file
 }
 
+fun pdfPageToBitmap(file: File, pageNumber: Int): Bitmap {
+    val resultBitmap: Bitmap
+
+    val parcelFileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+    val renderer = PdfRenderer(parcelFileDescriptor)
+
+    renderer.use { r ->
+        val page = r.openPage(pageNumber)
+        val bitmap = Bitmap.createBitmap(page.width, page.height, Bitmap.Config.ARGB_8888)
+        page.use {
+            it.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+        }
+        resultBitmap = bitmap
+    }
+
+    return resultBitmap
+}

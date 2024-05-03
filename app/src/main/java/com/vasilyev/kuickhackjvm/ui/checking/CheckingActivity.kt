@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.vasilyev.kuickhackjvm.R
@@ -37,7 +38,7 @@ class CheckingActivity: AppCompatActivity() {
             when(state){
                 is CheckingState.Loading -> {}
                 is CheckingState.CheckingCompleted -> {
-                    startActivity(ActivityResult.newIntent(this))
+                    startActivity(ActivityResult.newIntent(this, state.id))
                     finish()
                 }
             }
@@ -54,14 +55,19 @@ class CheckingActivity: AppCompatActivity() {
         if(!intent.hasExtra(EXTRA_FILE_URI)) throw RuntimeException("EXTRA_FILE_URI is absent")
         if(!intent.hasExtra(EXTRA_DOCUMENT_TYPE)) throw RuntimeException("EXTRA_DOCUMENT_TYPE is absent")
 
-        val documentName = when(intent.getStringExtra(EXTRA_DOCUMENT_TYPE)){
-            Document.ID_CARD.toString() -> getString(R.string.id_card)
-            Document.UNDEFINED.toString() -> getString(R.string.unknown)
-            else -> getString(R.string.unknown)
-        }
+        val documentName = getDocumentName(intent.getSerializableExtra(EXTRA_DOCUMENT_TYPE) as Document)
 
         val uri = Uri.parse(intent.getStringExtra(EXTRA_FILE_URI))
-        viewModel.checkFile(uriToFile(this, uri, documentName))
+        viewModel.checkFile(uriToFile(this, uri, documentName), documentName)
+    }
+
+    private fun getDocumentName(documentType: Document): String{
+        return when(documentType){
+            Document.ID_CARD -> getString(R.string.id_card)
+            Document.BIRTH_DOCUMENT -> getString(R.string.birth_document)
+            Document.DRIVER_LICENSE -> getString(R.string.driver_license)
+            Document.UNDEFINED -> getString(R.string.unknown)
+        }
     }
 
     companion object {

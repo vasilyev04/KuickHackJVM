@@ -7,13 +7,15 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.PopupMenu
 import androidx.fragment.app.activityViewModels
-import androidx.fragment.app.viewModels
+import com.vasilyev.kuickhackjvm.R
 import com.vasilyev.kuickhackjvm.model.Document
 import com.vasilyev.kuickhackjvm.databinding.FragmentHomeBinding
-import com.vasilyev.kuickhackjvm.model.RecentFile
-import com.vasilyev.kuickhackjvm.ui.ViewModelFactory
+import com.vasilyev.kuickhackjvm.model.CheckingResult
 import com.vasilyev.kuickhackjvm.ui.main.MainSharedViewModel
+import com.vasilyev.kuickhackjvm.ui.result.ActivityResult
+import com.vasilyev.kuickhackjvm.utils.base64ToBitmap
 
 
 class HomeFragment : Fragment() {
@@ -22,6 +24,7 @@ class HomeFragment : Fragment() {
         get() = requireNotNull(_binding)
 
     private var bottomSheetCallback: ShowBottomSheetCallBack? = null
+    private var seeAllFilesClicked: ButtonShowAllFilesCallback? = null
 
     private val viewModel: MainSharedViewModel by activityViewModels()
 
@@ -30,6 +33,10 @@ class HomeFragment : Fragment() {
         if(context is ShowBottomSheetCallBack){
             bottomSheetCallback = context
         }
+
+        if(context is ButtonShowAllFilesCallback){
+            seeAllFilesClicked = context
+        }
     }
 
     override fun onCreateView(
@@ -37,7 +44,8 @@ class HomeFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
-        Log.d("ViewModelCheck", viewModel.toString())
+
+        viewModel.getUpdatedList()
         setListeners()
         observeViewModel()
 
@@ -50,17 +58,23 @@ class HomeFragment : Fragment() {
                 bottomSheetCallback?.onShow(Document.ID_CARD)
                 viewModel.selectDocument(Document.ID_CARD)
             }
+
+            tvSeeAllFiles.setOnClickListener {
+                seeAllFilesClicked?.onClicked()
+            }
         }
     }
 
     private fun observeViewModel() {
-        viewModel.recentFiles.observe(viewLifecycleOwner) {
+        viewModel.recentResults.observe(viewLifecycleOwner) {
             stopLoading()
             if(it.size == 1){
+                binding.tvNoRecentFiles.visibility = View.INVISIBLE
                 binding.cvRecentDocFirst.visibility = View.VISIBLE
                 binding.cvRecentDocSecond.visibility = View.INVISIBLE
                 displayFirstDocumentPreview(it[0])
             }else if(it.size > 1){
+                binding.tvNoRecentFiles.visibility = View.INVISIBLE
                 binding.cvRecentDocFirst.visibility = View.VISIBLE
                 binding.cvRecentDocSecond.visibility = View.VISIBLE
                 displayFirstDocumentPreview(it[it.size - 1])
@@ -68,17 +82,17 @@ class HomeFragment : Fragment() {
             }else{
                 binding.cvRecentDocFirst.visibility = View.INVISIBLE
                 binding.cvRecentDocSecond.visibility = View.INVISIBLE
+                binding.tvNoRecentFiles.visibility = View.VISIBLE
             }
         }
 
         viewModel.mainSharedState.observe(viewLifecycleOwner){ state ->
             when(state){
-                is MainSharedState.Loading ->{
-                    showLoading()
-                }
+                is MainSharedState.Loading -> { showLoading() }
             }
         }
     }
+
 
     private fun showLoading(){
         binding.cvRecentDocFirst.visibility = View.INVISIBLE
@@ -92,27 +106,66 @@ class HomeFragment : Fragment() {
         binding.loadingProgressBar.visibility = View.INVISIBLE
     }
 
-    private fun displayFirstDocumentPreview(firstDocument: RecentFile){
+    private fun displayFirstDocumentPreview(firstDocument: CheckingResult){
         with(binding) {
-            val docName = firstDocument.fileName
+            val docName = firstDocument.documentName
             if(docName.length >= MAX_DOCUMENT_TEXT_LENGTH){
                 tvDocNameFirst.text = "${docName.substring(0, MAX_DOCUMENT_TEXT_LENGTH - 1)}..."
             }else{
                 tvDocNameFirst.text = docName
             }
-            tvDocDateFirst.text = "Today"
+
+            btnOptionFirst.setOnClickListener {
+                showPopupMenu(it, firstDocument)
+            }
+
+            cvRecentDocFirst.setOnClickListener {
+                startActivity(ActivityResult.newIntent(requireActivity(), firstDocument.id))
+            }
+
+            ivPreviewFirst.setImageBitmap(base64ToBitmap(firstDocument.documentPreview))
+            tvDocDateFirst.text = firstDocument.uploadDate
         }
     }
 
-    private fun displaySecondDocumentPreview(secondDocument: RecentFile){
+    private fun showPopupMenu(view: View, checkingResult: CheckingResult) {
+        val popup = PopupMenu(view.context, view)
+        popup.menuInflater.inflate(R.menu.item_context_menu, popup.menu)
+        popup.setOnMenuItemClickListener { item ->
+            val action = when (item.itemId) {
+                R.id.delete -> "delete"
+                else -> ""
+            }
+
+            if(action.isNotEmpty()){
+                viewModel.deleteCheckingResult(checkingResult)
+                true
+            }else{
+                false
+            }
+        }
+        popup.show()
+    }
+
+    private fun displaySecondDocumentPreview(secondDocument: CheckingResult){
         with(binding) {
-            val docName = secondDocument.fileName
+            val docName = secondDocument.documentName
             if(docName.length >= MAX_DOCUMENT_TEXT_LENGTH){
-                tvDocNameFirst.text = "${docName.substring(0, MAX_DOCUMENT_TEXT_LENGTH - 1)}..."
+                tvDocNameSecond.text = "${docName.substring(0, MAX_DOCUMENT_TEXT_LENGTH - 1)}..."
             }else{
                 tvDocNameSecond.text = docName
             }
-            tvDocDateSecond.text = "Today"
+
+            btnOptionSecond.setOnClickListener {
+                showPopupMenu(it, secondDocument)
+            }
+
+            cvRecentDocSecond.setOnClickListener {
+                startActivity(ActivityResult.newIntent(requireActivity(), secondDocument.id))
+            }
+
+            ivPreviewSecond.setImageBitmap(base64ToBitmap(secondDocument.documentPreview))
+            tvDocDateSecond.text = secondDocument.uploadDate
         }
     }
 
@@ -125,8 +178,12 @@ class HomeFragment : Fragment() {
         fun onShow(documentType: Document)
     }
 
+    interface ButtonShowAllFilesCallback{
+        fun onClicked()
+    }
+
     companion object{
         fun newInstance() = HomeFragment()
-        private const val MAX_DOCUMENT_TEXT_LENGTH = 21
+        private const val MAX_DOCUMENT_TEXT_LENGTH = 28
     }
 }

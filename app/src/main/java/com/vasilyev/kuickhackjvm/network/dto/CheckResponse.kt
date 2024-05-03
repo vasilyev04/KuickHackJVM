@@ -1,5 +1,5 @@
 package com.vasilyev.kuickhackjvm.network.dto
 
-class CheckResponse {
-
-}
+data class CheckResponse(
+    val status: String,
+)

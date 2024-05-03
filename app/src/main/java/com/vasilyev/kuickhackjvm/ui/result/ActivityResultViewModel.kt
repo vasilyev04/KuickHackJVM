@@ -18,14 +18,10 @@ class ActivityResultViewModel(
 
     private val database = RoomInstance.getInstance(application)
 
-    private fun getResult(){
+    fun getResult(id: Int){
         viewModelScope.launch(Dispatchers.IO) {
-            val list = database.recentFilesDao().getResults()
-            _result.postValue(list.last())
+            val result = database.recentFilesDao().getResult(id)
+            _result.postValue(result)
         }
-    }
-
-    init {
-        getResult()
     }
 }

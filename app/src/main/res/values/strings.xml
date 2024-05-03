@@ -15,6 +15,12 @@
     <string name="choose_check_way">Выберите способ проверки</string>
     <string name="title_document_name">Название документа</string>
     <string name="check_status_success">Документ успешно прошёл проверку!</string>
-    <string name="check_status_warning">Файл не является документом</string>
+    <string name="check_status_warning">Не удалось распрознать документ</string>
     <string name="check_status_error">Документ является неподлинным</string>
+    <string name="search">Поиск</string>
+    <string name="delete">Удалить</string>
+    <string name="no_recent_files">Нет недавних файлов</string>
+    <string name="birt_document">Cвидетельство о рождении</string>
+    <string name="others">Другое</string>
+    <string name="completed">Готово</string>
 </resources>

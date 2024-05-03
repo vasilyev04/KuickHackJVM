@@ -12,6 +12,8 @@ import com.vasilyev.kuickhackjvm.local.RoomInstance
 import com.vasilyev.kuickhackjvm.model.CheckStatus
 import com.vasilyev.kuickhackjvm.model.CheckingResult
 import com.vasilyev.kuickhackjvm.network.RetrofitInstance
+import com.vasilyev.kuickhackjvm.utils.bitmapToBase64
+import com.vasilyev.kuickhackjvm.utils.pdfPageToBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -30,30 +32,41 @@ class CheckingViewModel(
     private val _checkingState = MutableLiveData<CheckingState>()
     val checkingState: LiveData<CheckingState> get() = _checkingState
 
-    fun checkFile(file: File){
-        Log.d("masdmasdm", file.toUri().toString())
+    fun checkFile(file: File, documentName: String){
+        Log.d("LOG_CHECK_RESPONSE", file.toUri().toString())
 
         _checkingState.value = CheckingState.Loading
 
         viewModelScope.launch(Dispatchers.IO) {
             val requestFile = RequestBody.create(MediaType.parse("application/pdf"), file)
 
-            delay(3000)
-
             val multipartFile = MultipartBody.Part.createFormData("file", file.name, requestFile)
-            val response = apiService.checkIDCard(multipartFile)
+            val response = apiService.checkIDCard("IDCard", multipartFile)
 
-            val checkingResult = CheckingResult(documentName = file.name,
-                documentPreview = "",
-                checkStatus = CheckStatus.SUCCESS,
-                uploadDate = "Today"
+            val documentPreviewBitmap = pdfPageToBitmap(file, 0)
+            val documentPreview = bitmapToBase64(documentPreviewBitmap)
+
+            val statusText = response.body()!!.status
+
+            val status = if(statusText == "OK"){
+                CheckStatus.SUCCESS
+            }else if(statusText == "FAKE"){
+                CheckStatus.ERROR
+            }else{
+                CheckStatus.WARNING
+            }
+
+            val checkingResult = CheckingResult(documentName = documentName,
+                documentPreview = documentPreview,
+                checkStatus = status,
+                uploadDate = "Сегодня"
             )
 
-            database.recentFilesDao().addCheckingResult(checkingResult)
+            val id = database.recentFilesDao().addCheckingResult(checkingResult)
 
-            _checkingState.postValue(CheckingState.CheckingCompleted)
+            _checkingState.postValue(CheckingState.CheckingCompleted(id.toInt()))
 
-            Log.d("masdmasdm", response.body()!!.string())
+            Log.d("LOG_CHECK_RESPONSE", response.body()!!.status)
         }
     }
 }

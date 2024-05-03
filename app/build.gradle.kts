@@ -39,9 +39,13 @@ android {
         buildConfig = true
         viewBinding = true
     }
+
 }
 
 dependencies {
+
+    //PDFRender
+//    implementation("com.jidogoon:PdfRendererView:1.0.10")
 
     //Lottie
     implementation(libs.lottie)

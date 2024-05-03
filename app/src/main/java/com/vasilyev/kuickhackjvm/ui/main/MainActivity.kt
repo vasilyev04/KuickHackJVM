@@ -20,7 +20,8 @@ import com.vasilyev.kuickhackjvm.databinding.UploadWayBottomSheetBinding
 import com.vasilyev.kuickhackjvm.ui.ViewModelFactory
 import com.vasilyev.kuickhackjvm.ui.checking.CheckingActivity
 
-class MainActivity : AppCompatActivity(), HomeFragment.ShowBottomSheetCallBack {
+class MainActivity : AppCompatActivity(),
+    HomeFragment.ShowBottomSheetCallBack, HomeFragment.ButtonShowAllFilesCallback {
     private var _binding: ActivityMainBinding? = null
     private val binding: ActivityMainBinding
         get() = requireNotNull(_binding)
@@ -40,11 +41,9 @@ class MainActivity : AppCompatActivity(), HomeFragment.ShowBottomSheetCallBack {
     ){ uri ->
 
         uri?.let {
-            viewModel.createRecentFile(it, getDocumentName(selectedDocument))
-
             startActivity(
                 CheckingActivity.newIntent(
-                this@MainActivity, selectedDocument, it.toString())
+                this@MainActivity, selectedDocument, uri.toString())
             )
         }
 
@@ -58,8 +57,6 @@ class MainActivity : AppCompatActivity(), HomeFragment.ShowBottomSheetCallBack {
                     GmsDocumentScanningResult.fromActivityResultIntent(result.data)
 
                 scanningResult?.pdf?.uri?.let { uri ->
-                    viewModel.createRecentFile(uri, getDocumentName(selectedDocument))
-
                     startActivity(
                         CheckingActivity.newIntent(
                         this@MainActivity, selectedDocument, uri.toString())
@@ -70,14 +67,6 @@ class MainActivity : AppCompatActivity(), HomeFragment.ShowBottomSheetCallBack {
             dialog.cancel()
         }
 
-    private fun getDocumentName(documentType: Document): String{
-        return when(documentType){
-            Document.ID_CARD -> getString(R.string.id_card)
-            Document.BIRTH_DOCUMENT -> getString(R.string.birth_document)
-            Document.DRIVER_LICENSE -> getString(R.string.driver_license)
-            Document.UNDEFINED -> getString(R.string.unknown)
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -88,7 +77,6 @@ class MainActivity : AppCompatActivity(), HomeFragment.ShowBottomSheetCallBack {
 
         changeFragment(HomeFragment.newInstance())
         setListeners()
-        observeDialog()
         observeViewModel()
     }
 
@@ -99,15 +87,6 @@ class MainActivity : AppCompatActivity(), HomeFragment.ShowBottomSheetCallBack {
         }
     }
 
-    private fun observeDialog(){
-        dialog.setOnDismissListener {
-
-        }
-
-        dialog.setOnShowListener {
-
-        }
-    }
 
     private fun changeFragment(fragment: Fragment){
         supportFragmentManager
@@ -149,7 +128,7 @@ class MainActivity : AppCompatActivity(), HomeFragment.ShowBottomSheetCallBack {
                 R.id.documents -> changeFragment(DocumentsFragment.newInstance())
             }
 
-            false
+            true
         }
     }
 
@@ -192,5 +171,10 @@ class MainActivity : AppCompatActivity(), HomeFragment.ShowBottomSheetCallBack {
     override fun onDestroy() {
         super.onDestroy()
         _binding = null
+    }
+
+    override fun onClicked() {
+        changeFragment(HomeFragment.newInstance())
+        binding.bottomNavigationView.selectedItemId = R.id.documents
     }
 }
