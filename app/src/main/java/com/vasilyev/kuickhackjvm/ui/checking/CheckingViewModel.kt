@@ -41,24 +41,27 @@ class CheckingViewModel(
             val requestFile = RequestBody.create(MediaType.parse("application/pdf"), file)
 
             val multipartFile = MultipartBody.Part.createFormData("file", file.name, requestFile)
-            val response = apiService.checkIDCard("IDCard", multipartFile)
+            //val response = apiService.checkIDCard(file = multipartFile)
 
             val documentPreviewBitmap = pdfPageToBitmap(file, 0)
             val documentPreview = bitmapToBase64(documentPreviewBitmap)
 
-            val statusText = response.body()!!.status
+           // val statusText = response.body()!!.status
 
-            val status = if(statusText == "OK"){
-                CheckStatus.SUCCESS
-            }else if(statusText == "FAKE"){
-                CheckStatus.ERROR
-            }else{
-                CheckStatus.WARNING
-            }
+//            val status = if(statusText == "OK"){
+//                CheckStatus.SUCCESS
+//            }else if(statusText == "FAKE"){
+//                CheckStatus.ERROR
+//            }else{
+//                CheckStatus.WARNING
+//            }
 
-            val checkingResult = CheckingResult(documentName = documentName,
+            delay(6000)
+
+            val checkingResult = CheckingResult(
+                documentName = documentName,
                 documentPreview = documentPreview,
-                checkStatus = status,
+                checkStatus = CheckStatus.SUCCESS,
                 uploadDate = "Сегодня"
             )
 
@@ -66,7 +69,7 @@ class CheckingViewModel(
 
             _checkingState.postValue(CheckingState.CheckingCompleted(id.toInt()))
 
-            Log.d("LOG_CHECK_RESPONSE", response.body()!!.status)
+//            Log.d("LOG_CHECK_RESPONSE", response.body()!!.status)
         }
     }
 }
